@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import AnalysisLog from "./components/AnalysisLog";
 import CandlestickChart from "./components/CandlestickChart";
 import IndicatorPanel from "./components/IndicatorPanel";
@@ -12,7 +12,10 @@ import StatsPanel from "./components/StatsPanel";
 import { useForexBot } from "./hooks/useForexBot";
 
 export default function App() {
-  const { state, selectPair } = useForexBot();
+  const handleSignalComplete = useCallback(() => {
+    setStatsRefresh((p) => p + 1);
+  }, []);
+  const { state, selectPair } = useForexBot(handleSignalComplete);
   const [statsRefresh, setStatsRefresh] = useState(0);
   const [activeTab, setActiveTab] = useState("live");
 

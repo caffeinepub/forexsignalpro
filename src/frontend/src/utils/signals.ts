@@ -28,8 +28,9 @@ export function generateSignal(
   let buyScore = 0;
   let sellScore = 0;
 
+  // RSI(14) - most important
   if (ind.rsi14 !== null) {
-    if (ind.rsi14 < 25) {
+    if (ind.rsi14 < 30) {
       const pts = ind.rsi14 < 20 ? 25 : 20;
       votes.push({
         indicator: "RSI(14)",
@@ -39,7 +40,7 @@ export function generateSignal(
         reason: `RSI ${ind.rsi14.toFixed(1)} oversold`,
       });
       buyScore += pts;
-    } else if (ind.rsi14 > 75) {
+    } else if (ind.rsi14 > 70) {
       const pts = ind.rsi14 > 80 ? 25 : 20;
       votes.push({
         indicator: "RSI(14)",
@@ -49,6 +50,24 @@ export function generateSignal(
         reason: `RSI ${ind.rsi14.toFixed(1)} overbought`,
       });
       sellScore += pts;
+    } else if (ind.rsi14 < 45) {
+      votes.push({
+        indicator: "RSI(14)",
+        vote: "BUY",
+        weight: 20,
+        points: 8,
+        reason: `RSI ${ind.rsi14.toFixed(1)} below midpoint`,
+      });
+      buyScore += 8;
+    } else if (ind.rsi14 > 55) {
+      votes.push({
+        indicator: "RSI(14)",
+        vote: "SELL",
+        weight: 20,
+        points: 8,
+        reason: `RSI ${ind.rsi14.toFixed(1)} above midpoint`,
+      });
+      sellScore += 8;
     } else {
       votes.push({
         indicator: "RSI(14)",
@@ -60,23 +79,24 @@ export function generateSignal(
     }
   }
 
+  // RSI(21)
   if (ind.rsi21 !== null) {
-    if (ind.rsi21 < 30) {
+    if (ind.rsi21 < 40) {
       votes.push({
         indicator: "RSI(21)",
         vote: "BUY",
         weight: 10,
         points: 10,
-        reason: `RSI21 ${ind.rsi21.toFixed(1)} oversold`,
+        reason: `RSI21 ${ind.rsi21.toFixed(1)} bearish zone`,
       });
       buyScore += 10;
-    } else if (ind.rsi21 > 70) {
+    } else if (ind.rsi21 > 60) {
       votes.push({
         indicator: "RSI(21)",
         vote: "SELL",
         weight: 10,
         points: 10,
-        reason: `RSI21 ${ind.rsi21.toFixed(1)} overbought`,
+        reason: `RSI21 ${ind.rsi21.toFixed(1)} bullish zone`,
       });
       sellScore += 10;
     } else {
@@ -90,8 +110,9 @@ export function generateSignal(
     }
   }
 
+  // MACD
   if (ind.macd !== null) {
-    if (ind.macd.macd > 0 && ind.macd.histogram > 0) {
+    if (ind.macd.histogram > 0) {
       votes.push({
         indicator: "MACD",
         vote: "BUY",
@@ -100,7 +121,7 @@ export function generateSignal(
         reason: `MACD bullish hist ${ind.macd.histogram.toFixed(5)}`,
       });
       buyScore += 20;
-    } else if (ind.macd.macd < 0 && ind.macd.histogram < 0) {
+    } else if (ind.macd.histogram < 0) {
       votes.push({
         indicator: "MACD",
         vote: "SELL",
@@ -120,6 +141,7 @@ export function generateSignal(
     }
   }
 
+  // Bollinger Bands
   if (ind.bb !== null) {
     if (price < ind.bb.lower) {
       votes.push({
@@ -139,19 +161,30 @@ export function generateSignal(
         reason: "Price above upper band",
       });
       sellScore += 15;
+    } else if (price < ind.bb.middle) {
+      votes.push({
+        indicator: "BB Bands",
+        vote: "BUY",
+        weight: 15,
+        points: 5,
+        reason: "Price in lower half",
+      });
+      buyScore += 5;
     } else {
       votes.push({
         indicator: "BB Bands",
-        vote: "NEUTRAL",
+        vote: "SELL",
         weight: 15,
-        points: 0,
-        reason: "Price inside bands",
+        points: 5,
+        reason: "Price in upper half",
       });
+      sellScore += 5;
     }
   }
 
+  // Stochastic
   if (ind.stoch !== null) {
-    if (ind.stoch.k < 20) {
+    if (ind.stoch.k < 25) {
       votes.push({
         indicator: "Stochastic",
         vote: "BUY",
@@ -160,7 +193,7 @@ export function generateSignal(
         reason: `Stoch K ${ind.stoch.k.toFixed(1)} oversold`,
       });
       buyScore += 15;
-    } else if (ind.stoch.k > 80) {
+    } else if (ind.stoch.k > 75) {
       votes.push({
         indicator: "Stochastic",
         vote: "SELL",
@@ -169,17 +202,28 @@ export function generateSignal(
         reason: `Stoch K ${ind.stoch.k.toFixed(1)} overbought`,
       });
       sellScore += 15;
+    } else if (ind.stoch.k < 50) {
+      votes.push({
+        indicator: "Stochastic",
+        vote: "BUY",
+        weight: 15,
+        points: 5,
+        reason: `Stoch K ${ind.stoch.k.toFixed(1)} below mid`,
+      });
+      buyScore += 5;
     } else {
       votes.push({
         indicator: "Stochastic",
-        vote: "NEUTRAL",
+        vote: "SELL",
         weight: 15,
-        points: 0,
-        reason: `Stoch K ${ind.stoch.k.toFixed(1)} neutral`,
+        points: 5,
+        reason: `Stoch K ${ind.stoch.k.toFixed(1)} above mid`,
       });
+      sellScore += 5;
     }
   }
 
+  // EMA Crossover
   if (ind.ema9 !== null && ind.ema21 !== null) {
     if (ind.ema9 > ind.ema21) {
       votes.push({
@@ -202,6 +246,7 @@ export function generateSignal(
     }
   }
 
+  // SMA Crossover
   if (ind.sma50 !== null && ind.sma200 !== null) {
     if (ind.sma50 > ind.sma200) {
       votes.push({
@@ -224,8 +269,9 @@ export function generateSignal(
     }
   }
 
+  // Williams %R
   if (ind.williamsR !== null) {
-    if (ind.williamsR < -80) {
+    if (ind.williamsR < -75) {
       votes.push({
         indicator: "Williams %R",
         vote: "BUY",
@@ -234,7 +280,7 @@ export function generateSignal(
         reason: `W%R ${ind.williamsR.toFixed(1)} oversold`,
       });
       buyScore += 10;
-    } else if (ind.williamsR > -20) {
+    } else if (ind.williamsR > -25) {
       votes.push({
         indicator: "Williams %R",
         vote: "SELL",
@@ -243,19 +289,30 @@ export function generateSignal(
         reason: `W%R ${ind.williamsR.toFixed(1)} overbought`,
       });
       sellScore += 10;
+    } else if (ind.williamsR < -50) {
+      votes.push({
+        indicator: "Williams %R",
+        vote: "BUY",
+        weight: 10,
+        points: 4,
+        reason: `W%R ${ind.williamsR.toFixed(1)} lower half`,
+      });
+      buyScore += 4;
     } else {
       votes.push({
         indicator: "Williams %R",
-        vote: "NEUTRAL",
+        vote: "SELL",
         weight: 10,
-        points: 0,
-        reason: `W%R ${ind.williamsR.toFixed(1)} neutral`,
+        points: 4,
+        reason: `W%R ${ind.williamsR.toFixed(1)} upper half`,
       });
+      sellScore += 4;
     }
   }
 
+  // CCI
   if (ind.cci !== null) {
-    if (ind.cci < -100) {
+    if (ind.cci < -80) {
       votes.push({
         indicator: "CCI",
         vote: "BUY",
@@ -264,7 +321,7 @@ export function generateSignal(
         reason: `CCI ${ind.cci.toFixed(1)} oversold`,
       });
       buyScore += 10;
-    } else if (ind.cci > 100) {
+    } else if (ind.cci > 80) {
       votes.push({
         indicator: "CCI",
         vote: "SELL",
@@ -273,28 +330,40 @@ export function generateSignal(
         reason: `CCI ${ind.cci.toFixed(1)} overbought`,
       });
       sellScore += 10;
+    } else if (ind.cci < 0) {
+      votes.push({
+        indicator: "CCI",
+        vote: "BUY",
+        weight: 10,
+        points: 4,
+        reason: `CCI ${ind.cci.toFixed(1)} negative`,
+      });
+      buyScore += 4;
     } else {
       votes.push({
         indicator: "CCI",
-        vote: "NEUTRAL",
+        vote: "SELL",
         weight: 10,
-        points: 0,
-        reason: `CCI ${ind.cci.toFixed(1)} neutral`,
+        points: 4,
+        reason: `CCI ${ind.cci.toFixed(1)} positive`,
       });
+      sellScore += 4;
     }
   }
 
-  if (ind.adx !== null && ind.adx > 25) {
+  // ADX (trend strength amplifier)
+  if (ind.adx !== null && ind.adx > 20) {
     const trendDir = buyScore > sellScore ? "BUY" : "SELL";
+    const pts = ind.adx > 40 ? 15 : ind.adx > 30 ? 12 : 10;
     votes.push({
       indicator: "ADX",
       vote: trendDir,
       weight: 10,
-      points: 10,
-      reason: `ADX ${ind.adx.toFixed(1)} strong trend`,
+      points: pts,
+      reason: `ADX ${ind.adx.toFixed(1)} trend confirmed`,
     });
-    if (trendDir === "BUY") buyScore += 10;
-    else sellScore += 10;
+    if (trendDir === "BUY") buyScore += pts;
+    else sellScore += pts;
   } else if (ind.adx !== null) {
     votes.push({
       indicator: "ADX",
@@ -305,6 +374,7 @@ export function generateSignal(
     });
   }
 
+  // Momentum
   if (ind.momentum !== null) {
     if (ind.momentum > 0) {
       votes.push({
@@ -335,6 +405,7 @@ export function generateSignal(
     }
   }
 
+  // Volume
   if (ind.volume.trend === "up") {
     votes.push({
       indicator: "Volume",
@@ -363,17 +434,19 @@ export function generateSignal(
     });
   }
 
-  if (ind.trendStrength > 30) {
+  // Trend Strength
+  if (ind.trendStrength > 20) {
     const trendDir = buyScore > sellScore ? "BUY" : "SELL";
+    const pts = ind.trendStrength > 50 ? 12 : 10;
     votes.push({
       indicator: "Trend",
       vote: trendDir,
       weight: 10,
-      points: 10,
+      points: pts,
       reason: `Trend strength ${ind.trendStrength.toFixed(1)}`,
     });
-    if (trendDir === "BUY") buyScore += 10;
-    else sellScore += 10;
+    if (trendDir === "BUY") buyScore += pts;
+    else sellScore += pts;
   } else {
     votes.push({
       indicator: "Trend",
@@ -384,10 +457,11 @@ export function generateSignal(
     });
   }
 
+  // Support / Resistance
   if (ind.sr !== null) {
     const distToSupport = Math.abs(price - ind.sr.support) / price;
     const distToResistance = Math.abs(price - ind.sr.resistance) / price;
-    if (distToSupport < 0.002) {
+    if (distToSupport < 0.003) {
       votes.push({
         indicator: "S/R Zones",
         vote: "BUY",
@@ -396,7 +470,7 @@ export function generateSignal(
         reason: `Near support ${ind.sr.support.toFixed(5)}`,
       });
       buyScore += 10;
-    } else if (distToResistance < 0.002) {
+    } else if (distToResistance < 0.003) {
       votes.push({
         indicator: "S/R Zones",
         vote: "SELL",
@@ -416,16 +490,17 @@ export function generateSignal(
     }
   }
 
+  // ATR volatility
   if (ind.atr !== null) {
     const atrPercent = (ind.atr / price) * 100;
-    if (atrPercent > 0.05) {
+    if (atrPercent > 0.03) {
       const trendDir = buyScore > sellScore ? "BUY" : "SELL";
       votes.push({
         indicator: "ATR",
         vote: trendDir,
         weight: 5,
         points: 5,
-        reason: `High volatility ${atrPercent.toFixed(3)}%`,
+        reason: `Volatility ${atrPercent.toFixed(3)}%`,
       });
       if (trendDir === "BUY") buyScore += 5;
       else sellScore += 5;
@@ -444,20 +519,16 @@ export function generateSignal(
   const strength = Math.min(98, (maxScore / MAX_SCORE) * 100);
   const direction: "BUY" | "SELL" = buyScore > sellScore ? "BUY" : "SELL";
 
-  const rsiConfirms =
-    ind.rsi14 !== null &&
-    ((direction === "BUY" && ind.rsi14 < 50) ||
-      (direction === "SELL" && ind.rsi14 > 50));
-  const macdConfirms =
-    ind.macd !== null &&
-    ((direction === "BUY" && ind.macd.macd > 0) ||
-      (direction === "SELL" && ind.macd.macd < 0));
-
   const reasons = votes
     .filter((v) => v.vote !== "NEUTRAL")
     .map((v) => v.reason);
 
-  if (strength >= 80 && rsiConfirms && macdConfirms) {
+  // Signal fires when enough indicators agree (no longer requires both RSI + MACD simultaneously)
+  // Require: strength >= 75% AND strong majority (winning side has at least 1.5x the losing side — higher accuracy)
+  const dominance =
+    maxScore > 0 ? maxScore / Math.max(1, Math.min(buyScore, sellScore)) : 0;
+
+  if (strength >= 75 && dominance >= 1.5) {
     return { direction, strength, reasons, votes, buyScore, sellScore };
   }
 
