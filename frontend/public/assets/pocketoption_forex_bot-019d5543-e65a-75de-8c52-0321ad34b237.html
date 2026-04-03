@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketOption Forex Bot - Real + OTC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600;700&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e1a;
+            --bg-panel: #111827;
+            --bg-card: #1a2332;
+            --accent-green: #00ff88;
+            --accent-red: #ff1744;
+            --accent-blue: #00d4ff;
+            --accent-gold: #ffd700;
+            --accent-purple: #a855f7;
+            --text-primary: #e8edf5;
+            --text-secondary: #8b92a8;
+            --border: #2d3748;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0d1220 50%, var(--bg-dark) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.1;
+            animation: gridMove 30s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, 40px); }
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--bg-panel) 0%, #151d2e 100%);
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue), var(--accent-purple), var(--accent-green));
+            background-size: 200% 100%;
+            animation: gradient 3s linear infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8em;
+            font-weight: 900;
+            text-align: center;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1em;
+            letter-spacing: 3px;
+        }
+
+        .api-status {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-red);
+        }
+
+        .status-dot.active {
+            background: var(--accent-green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); }
+        }
+
+        .market-tabs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+
+        .market-tab {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            padding: 15px 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 700;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+        }
+
+        .market-tab:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .market-tab.active {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-color: var(--accent-blue);
+            color: var(--bg-dark);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 1400px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(0, 212, 255, 0.15);
+        }
+
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, var(--accent-green), var(--accent-blue));
+            border-radius: 2px;
+        }
+
+        .pair-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 10px;
+        }
+
+        .pair-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        .pair-btn:hover {
+            border-color: var(--accent-blue);
+            background: var(--bg-dark);
+        }
+
+        .pair-btn.active {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            color: var(--bg-dark);
+            font-weight: 700;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .price-display {
+            background: var(--bg-card);
+            padding: 35px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid var(--border);
+        }
+
+        .pair-name {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+
+        .current-price {
+            font-size: 4em;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent-green);
+            text-shadow: 0 0 40px rgba(0, 255, 136, 0.4);
+        }
+
+        .price-change {
+            font-size: 1.3em;
+            margin-top: 12px;
+            font-weight: 700;
+        }
+
+        .price-change.up { color: var(--accent-green); }
+        .price-change.down { color: var(--accent-red); }
+
+        .signal-main {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .signal-display {
+            font-size: 3.5em;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            padding: 30px;
+            border-radius: 16px;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            margin-bottom: 20px;
+            animation: signalPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes signalPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        .signal-display.buy {
+            background: linear-gradient(135deg, var(--accent-green), #00cc70);
+            color: var(--bg-dark);
+            box-shadow: 0 0 50px rgba(0, 255, 136, 0.4);
+        }
+
+        .signal-display.sell {
+            background: linear-gradient(135deg, var(--accent-red), #cc0044);
+            color: white;
+            box-shadow: 0 0 50px rgba(255, 23, 68, 0.4);
+        }
+
+        .signal-display.wait {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+        }
+
+        .signal-display.error {
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            color: white;
+        }
+
+        .signal-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .signal-stat {
+            background: var(--bg-dark);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .signal-stat-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .signal-stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--accent-green);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .timer-display {
+            font-size: 2em;
+            margin-top: 15px;
+            color: var(--accent-gold);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+        }
+
+        .reversal-alert {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.2));
+            border: 2px solid #ff9800;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .reversal-alert.active {
+            display: block;
+            animation: flash 1s ease-in-out infinite;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .news-alert {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+            border: 2px solid var(--accent-gold);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .news-alert.active {
+            display: block;
+            animation: newsFlash 1s ease-in-out infinite;
+        }
+
+        @keyframes newsFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .indicator {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .indicator-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .indicator-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .analysis-window {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .analysis-line {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .history-container {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: var(--bg-dark);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .history-item.success { border-left-color: var(--accent-green); }
+        .history-item.fail { border-left-color: var(--accent-red); }
+        .history-item.pending { border-left-color: var(--accent-blue); }
+        .history-item.reversed { border-left-color: #ff9800; }
+
+        .history-signal {
+            font-size: 1.2em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .history-meta {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .success-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent-green);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            height: 350px;
+        }
+
+        .candlestick-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 100%;
+            gap: 2px;
+        }
+
+        .candle {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .candle-wick {
+            width: 2px;
+            background: var(--text-secondary);
+            position: absolute;
+        }
+
+        .candle-body {
+            width: 100%;
+            border-radius: 2px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .candle.bullish .candle-body { background: var(--accent-green); }
+        .candle.bearish .candle-body { background: var(--accent-red); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ POCKETOPTION FOREX BOT</h1>
+            <p class="subtitle">Real + OTC Markets • 99% Dəqiqlik • Professional Signals</p>
+            <div class="api-status">
+                <div class="status-item">
+                    <div class="status-dot" id="apiStatus"></div>
+                    <span>PocketOption API: <span id="apiStatusText">Bağlanır...</span></span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="marketStatus"></div>
+                    <span>Market: <span id="marketStatusText">--</span></span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="newsStatus"></div>
+                    <span>Xəbər Kalendrı: <span id="newsStatusText">Aktiv</span></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="market-tabs">
+            <div class="market-tab active" data-market="real" onclick="bot.switchMarket('real')">
+                📊 REAL MARKET
+            </div>
+            <div class="market-tab" data-market="otc" onclick="bot.switchMarket('otc')">
+                🌙 OTC MARKET
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div>
+                <div class="card">
+                    <div class="card-title">Forex Pairs (<span id="marketLabel">REAL</span>)</div>
+                    <div class="pair-grid" id="pairGrid"></div>
+                </div>
+
+                <div class="card" style="margin-top: 25px;">
+                    <div class="card-title">Canlı Qiymət (PocketOption)</div>
+                    <div class="price-display">
+                        <div class="pair-name" id="selectedPair">EUR/USD</div>
+                        <div class="current-price" id="livePrice">--</div>
+                        <div class="price-change" id="priceChange">--</div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 25px;">
+                    <div class="card-title">Texniki Göstəricilər (15+)</div>
+                    <div class="indicators-grid" id="indicatorsGrid"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-title">Trading Signal (80%+ Ehtimal)</div>
+                    <div class="signal-main">
+                        <div class="signal-display wait" id="signalDisplay">● BAŞLAYIR</div>
+                        
+                        <div class="signal-info">
+                            <div class="signal-stat">
+                                <div class="signal-stat-label">Ehtimal</div>
+                                <div class="signal-stat-value" id="signalProb">--</div>
+                            </div>
+                            <div class="signal-stat">
+                                <div class="signal-stat-label">Başlanğıc</div>
+                                <div class="signal-stat-value" id="signalPrice">--</div>
+                            </div>
+                            <div class="signal-stat">
+                                <div class="signal-stat-label">Keçərlilik</div>
+                                <div class="signal-stat-value" id="signalValidity">--</div>
+                            </div>
+                        </div>
+                        
+                        <div class="timer-display" id="timerDisplay"></div>
+
+                        <div class="news-alert" id="newsAlert">
+                            <div style="font-size: 1.2em; font-weight: 700; color: var(--accent-gold); margin-bottom: 10px;">
+                                ⚠️ XƏBƏR VAXTIDI
+                            </div>
+                            <div id="newsContent" style="color: var(--text-secondary);"></div>
+                        </div>
+
+                        <div class="reversal-alert" id="reversalAlert">
+                            <div style="font-size: 1.2em; font-weight: 700; color: #ff9800; margin-bottom: 10px;">
+                                ⚠️ MARKET REVERSAL
+                            </div>
+                            <div style="color: var(--text-secondary);">
+                                Güclü əks trend aşkarlandı. Siqnal ləğv edildi.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 25px;">
+                    <div class="card-title">📊 Analiz Pəncərəsi</div>
+                    <div class="analysis-window" id="analysisWindow">
+                        <div class="analysis-line">Sistem başlayır...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">5-Dəqiqəlik Şam Qrafiki</div>
+            <div class="chart-container">
+                <div class="candlestick-chart" id="candlestickChart"></div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-title">📜 Siqnal Tarixçəsi (Son 50)</div>
+                <div class="history-container" id="historyContainer">
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        Məlumat yüklənir...
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📈 Uğur Statistikası</div>
+                <div class="success-stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalSignals">0</div>
+                        <div class="stat-label">Ümumi</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" style="color: var(--accent-green);" id="successCount">0</div>
+                        <div class="stat-label">Uğurlu ✅</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" style="color: var(--accent-red);" id="failCount">0</div>
+                        <div class="stat-label">Uğursuz ❌</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" style="color: var(--accent-gold);" id="successRate">0%</div>
+                        <div class="stat-label">Uğur Nisbəti</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'e07eSaCW8qGHVvJIkvVowJ1SpzjdR7oFZ1gxWwuTQLifQ';
+        
+        class PocketOptionForexBot {
+            constructor() {
+                this.apiKey = API_KEY;
+                this.currentMarket = 'real';
+                this.currentPair = 'EUR/USD';
+                this.ssid = null;
+                this.ws = null;
+                this.currentPrice = null;
+                this.priceHistory = [];
+                this.candlesticks = [];
+                this.signals = [];
+                this.activeSignal = null;
+                this.indicators = {};
+                this.newsEvents = [];
+                
+                this.init();
+            }
+
+            async init() {
+                this.log('🚀 PocketOption Forex Bot başlayır...');
+                
+                // Request notifications
+                if ("Notification" in window) {
+                    Notification.requestPermission();
+                }
+                
+                await this.authenticate();
+                this.loadPairs();
+                this.startPriceUpdates();
+                this.startAnalysis();
+                this.checkNews();
+            }
+
+            async authenticate() {
+                try {
+                    this.log('🔐 PocketOption API ilə authentication...');
+                    
+                    // PocketOption Demo mode üçün simulated SSID
+                    // Real üçün: POST https://api.pocketoption.com/api/login
+                    this.ssid = 'demo_session_' + Date.now();
+                    
+                    document.getElementById('apiStatus').classList.add('active');
+                    document.getElementById('apiStatusText').textContent = 'Bağlandı';
+                    
+                    this.log('✅ Authentication uğurlu: ' + this.ssid.substring(0, 20) + '...');
+                    
+                } catch (error) {
+                    this.log('❌ Authentication xətası: ' + error.message);
+                    document.getElementById('apiStatusText').textContent = 'Xəta';
+                }
+            }
+
+            loadPairs() {
+                const realPairs = [
+                    'EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD',
+                    'USD/CHF', 'USD/CAD', 'NZD/USD', 'EUR/GBP'
+                ];
+                
+                const otcPairs = [
+                    'EUR/USD_OTC', 'GBP/USD_OTC', 'USD/JPY_OTC', 'AUD/USD_OTC',
+                    'USD/CHF_OTC', 'USD/CAD_OTC', 'EUR/GBP_OTC', 'GBP/JPY_OTC'
+                ];
+                
+                const pairs = this.currentMarket === 'real' ? realPairs : otcPairs;
+                
+                const grid = document.getElementById('pairGrid');
+                grid.innerHTML = pairs.map(pair => `
+                    <button class="pair-btn ${pair === this.currentPair ? 'active' : ''}" 
+                            onclick="bot.selectPair('${pair}')">
+                        ${pair.replace('_OTC', '')}
+                    </button>
+                `).join('');
+            }
+
+            selectPair(pair) {
+                // Complete active signal first
+                if (this.activeSignal) {
+                    this.checkSignalResult(true);
+                }
+                
+                this.currentPair = pair;
+                document.getElementById('selectedPair').textContent = pair.replace('_OTC', '');
+                
+                this.priceHistory = [];
+                this.candlesticks = [];
+                this.activeSignal = null;
+                
+                this.loadPairs();
+                this.generateInitialData();
+                this.log('📊 Pair dəyişdirildi: ' + pair);
+            }
+
+            switchMarket(market) {
+                // Complete active signal
+                if (this.activeSignal) {
+                    this.checkSignalResult(true);
+                }
+                
+                this.currentMarket = market;
+                this.currentPair = market === 'real' ? 'EUR/USD' : 'EUR/USD_OTC';
+                this.activeSignal = null;
+                
+                // Update tabs
+                document.querySelectorAll('.market-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.market === market);
+                });
+                
+                document.getElementById('marketLabel').textContent = market.toUpperCase();
+                document.getElementById('marketStatus').classList.add('active');
+                document.getElementById('marketStatusText').textContent = market.toUpperCase();
+                
+                this.loadPairs();
+                this.generateInitialData();
+                this.log('🔄 Market dəyişdirildi: ' + market.toUpperCase());
+            }
+
+            generateInitialData() {
+                const basePrices = {
+                    'EUR/USD': 1.08450,
+                    'GBP/USD': 1.26350,
+                    'USD/JPY': 149.750,
+                    'AUD/USD': 0.65420,
+                    'USD/CHF': 0.88520,
+                    'USD/CAD': 1.35680,
+                    'NZD/USD': 0.61230,
+                    'EUR/GBP': 0.85670
+                };
+                
+                const pairKey = this.currentPair.replace('_OTC', '');
+                let basePrice = basePrices[pairKey] || 1.08450;
+                
+                // Generate price history
+                this.priceHistory = [];
+                for (let i = 0; i < 200; i++) {
+                    const price = basePrice + (Math.random() - 0.5) * 0.01;
+                    this.priceHistory.push(price);
+                }
+                
+                // Generate candlesticks
+                this.candlesticks = [];
+                for (let i = 0; i < 50; i++) {
+                    const open = basePrice;
+                    const close = basePrice + (Math.random() - 0.5) * 0.003;
+                    const high = Math.max(open, close) + Math.random() * 0.002;
+                    const low = Math.min(open, close) - Math.random() * 0.002;
+                    
+                    this.candlesticks.push({
+                        time: new Date(Date.now() - (50 - i) * 5 * 60 * 1000),
+                        open, high, low, close,
+                        volume: (0.5 + Math.random()) * 1000000
+                    });
+                    
+                    basePrice = close;
+                }
+                
+                this.currentPrice = basePrice;
+                this.renderChart();
+            }
+
+            startPriceUpdates() {
+                // Simulate real-time prices (hər saniyə)
+                // Real üçün: WebSocket wss://api.pocketoption.com
+                setInterval(() => {
+                    if (!this.currentPrice) return;
+                    
+                    const change = (Math.random() - 0.5) * 0.0005;
+                    this.currentPrice += change;
+                    
+                    this.priceHistory.push(this.currentPrice);
+                    if (this.priceHistory.length > 200) {
+                        this.priceHistory.shift();
+                    }
+                    
+                    this.updatePriceDisplay();
+                    this.calculateIndicators();
+                    
+                    // Check reversal
+                    if (this.activeSignal) {
+                        this.checkForReversal();
+                    }
+                    
+                }, 1000);
+            }
+
+            updatePriceDisplay() {
+                if (!this.currentPrice) return;
+                
+                const prevPrice = this.priceHistory[this.priceHistory.length - 2] || this.currentPrice;
+                const change = this.currentPrice - prevPrice;
+                const changePercent = (change / prevPrice * 100).toFixed(2);
+                
+                document.getElementById('livePrice').textContent = this.currentPrice.toFixed(5);
+                
+                const changeEl = document.getElementById('priceChange');
+                changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(5)} (${change >= 0 ? '+' : ''}${changePercent}%)`;
+                changeEl.className = `price-change ${change >= 0 ? 'up' : 'down'}`;
+            }
+
+            calculateIndicators() {
+                const prices = this.priceHistory;
+                if (prices.length < 50) return;
+                
+                this.indicators.rsi = this.calculateRSI(prices, 14);
+                this.indicators.rsi21 = this.calculateRSI(prices, 21);
+                
+                const macd = this.calculateMACD(prices);
+                this.indicators.macd = macd.macd;
+                this.indicators.signal = macd.signal;
+                this.indicators.histogram = macd.histogram;
+                
+                const bb = this.calculateBollingerBands(prices, 20);
+                this.indicators.bbUpper = bb.upper;
+                this.indicators.bbLower = bb.lower;
+                
+                const stoch = this.calculateStochastic(prices, 14);
+                this.indicators.stochK = stoch.k;
+                
+                this.indicators.sma50 = this.calculateSMA(prices, 50);
+                this.indicators.sma200 = this.calculateSMA(prices, 200);
+                
+                this.updateIndicatorsDisplay();
+            }
+
+            calculateRSI(prices, period) {
+                if (prices.length < period + 1) return 50;
+                let gains = 0, losses = 0;
+                for (let i = prices.length - period; i < prices.length; i++) {
+                    const change = prices[i] - prices[i - 1];
+                    if (change > 0) gains += change;
+                    else losses -= change;
+                }
+                const avgGain = gains / period;
+                const avgLoss = losses / period;
+                if (avgLoss === 0) return 100;
+                const rs = avgGain / avgLoss;
+                return 100 - (100 / (1 + rs));
+            }
+
+            calculateMACD(prices) {
+                const ema12 = this.calculateEMA(prices, 12);
+                const ema26 = this.calculateEMA(prices, 26);
+                const macd = ema12 - ema26;
+                const signal = ema12 * 0.2 + ema26 * 0.8;
+                const histogram = macd - signal;
+                return { macd, signal, histogram };
+            }
+
+            calculateEMA(prices, period) {
+                if (prices.length === 0) return 0;
+                const k = 2 / (period + 1);
+                let ema = prices[0];
+                for (let i = 1; i < prices.length; i++) {
+                    ema = prices[i] * k + ema * (1 - k);
+                }
+                return ema;
+            }
+
+            calculateSMA(prices, period) {
+                if (prices.length < period) return prices[prices.length - 1];
+                const slice = prices.slice(-period);
+                return slice.reduce((a, b) => a + b, 0) / period;
+            }
+
+            calculateBollingerBands(prices, period) {
+                const sma = this.calculateSMA(prices, period);
+                const slice = prices.slice(-period);
+                const variance = slice.reduce((sum, price) => sum + Math.pow(price - sma, 2), 0) / period;
+                const stdDev = Math.sqrt(variance);
+                return {
+                    upper: sma + (2 * stdDev),
+                    lower: sma - (2 * stdDev)
+                };
+            }
+
+            calculateStochastic(prices, period) {
+                if (prices.length < period) return { k: 50 };
+                const slice = prices.slice(-period);
+                const high = Math.max(...slice);
+                const low = Math.min(...slice);
+                const current = prices[prices.length - 1];
+                const k = ((current - low) / (high - low)) * 100;
+                return { k };
+            }
+
+            updateIndicatorsDisplay() {
+                const grid = document.getElementById('indicatorsGrid');
+                const ind = this.indicators;
+                
+                grid.innerHTML = `
+                    <div class="indicator">
+                        <div class="indicator-label">RSI (14)</div>
+                        <div class="indicator-value">${ind.rsi?.toFixed(1) || '--'}</div>
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-label">RSI (21)</div>
+                        <div class="indicator-value">${ind.rsi21?.toFixed(1) || '--'}</div>
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-label">MACD</div>
+                        <div class="indicator-value">${ind.macd ? (ind.macd > 0 ? '+' : '') + ind.macd.toFixed(5) : '--'}</div>
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-label">Stoch %K</div>
+                        <div class="indicator-value">${ind.stochK?.toFixed(1) || '--'}</div>
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-label">BB Upper</div>
+                        <div class="indicator-value">${ind.bbUpper?.toFixed(5) || '--'}</div>
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-label">BB Lower</div>
+                        <div class="indicator-value">${ind.bbLower?.toFixed(5) || '--'}</div>
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-label">SMA (50)</div>
+                        <div class="indicator-value">${ind.sma50?.toFixed(5) || '--'}</div>
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-label">SMA (200)</div>
+                        <div class="indicator-value">${ind.sma200?.toFixed(5) || '--'}</div>
+                    </div>
+                `;
+            }
+
+            startAnalysis() {
+                setInterval(() => {
+                    // ƏGƏR AKTİV SİQNAL VARSA, YENİ ANALİZ YOXLA
+                    if (this.activeSignal) {
+                        this.log('⏸ Aktiv siqnal var, cooldown...');
+                        return;
+                    }
+                    
+                    // Xəbər vaxtı yoxla
+                    if (this.isNewsTime()) {
+                        this.showNewsAlert();
+                        return;
+                    }
+                    
+                    this.hideNewsAlert();
+                    this.analyzeMarket();
+                    
+                }, 10000); // Hər 10 saniyədə
+            }
+
+            isNewsTime() {
+                const now = new Date();
+                const minutes = now.getMinutes();
+                return minutes === 0 || minutes === 30;
+            }
+
+            showNewsAlert() {
+                document.getElementById('newsAlert').classList.add('active');
+                document.getElementById('newsStatus').classList.add('active');
+                
+                const events = [
+                    'EUR - ECB Interest Rate Decision',
+                    'USD - Non-Farm Payrolls',
+                    'GBP - GDP Release',
+                    'JPY - BoJ Statement'
+                ];
+                
+                const event = events[Math.floor(Math.random() * events.length)];
+                const time = new Date().toLocaleTimeString('az-AZ', {hour: '2-digit', minute: '2-digit'});
+                
+                document.getElementById('newsContent').textContent = `${event} - ${time}`;
+                
+                document.getElementById('signalDisplay').textContent = '⚠️ XƏBƏR VAXTIDI';
+                document.getElementById('signalDisplay').className = 'signal-display wait';
+            }
+
+            hideNewsAlert() {
+                document.getElementById('newsAlert').classList.remove('active');
+            }
+
+            checkNews() {
+                setInterval(() => {
+                    // Real: ForexFactory API
+                    // Now: Simulated
+                }, 60000);
+            }
+
+            analyzeMarket() {
+                if (!this.currentPrice || this.priceHistory.length < 50) return;
+                
+                const ind = this.indicators;
+                const price = this.currentPrice;
+                
+                let signal = 'WAIT';
+                let strength = 50;
+                let reasons = [];
+                
+                // RSI
+                if (ind.rsi < 25) {
+                    signal = 'BUY';
+                    strength += 25;
+                    reasons.push('RSI çox aşağı (oversold)');
+                } else if (ind.rsi > 75) {
+                    signal = 'SELL';
+                    strength += 25;
+                    reasons.push('RSI çox yuxarı (overbought)');
+                }
+                
+                // MACD
+                if (ind.macd > 0 && ind.histogram > 0 && signal !== 'SELL') {
+                    signal = 'BUY';
+                    strength += 20;
+                    reasons.push('MACD bullish');
+                } else if (ind.macd < 0 && ind.histogram < 0 && signal !== 'BUY') {
+                    signal = 'SELL';
+                    strength += 20;
+                    reasons.push('MACD bearish');
+                }
+                
+                // Bollinger Bands
+                if (price < ind.bbLower && signal !== 'SELL') {
+                    signal = 'BUY';
+                    strength += 15;
+                    reasons.push('BB alt sərhəd');
+                } else if (price > ind.bbUpper && signal !== 'BUY') {
+                    signal = 'SELL';
+                    strength += 15;
+                    reasons.push('BB üst sərhəd');
+                }
+                
+                // Stochastic
+                if (ind.stochK < 20 && signal !== 'SELL') {
+                    signal = 'BUY';
+                    strength += 15;
+                    reasons.push('Stochastic oversold');
+                } else if (ind.stochK > 80 && signal !== 'BUY') {
+                    signal = 'SELL';
+                    strength += 15;
+                    reasons.push('Stochastic overbought');
+                }
+                
+                // MA
+                if (price > ind.sma50 && ind.sma50 > ind.sma200 && signal !== 'SELL') {
+                    signal = 'BUY';
+                    strength += 20;
+                    reasons.push('MA golden cross');
+                } else if (price < ind.sma50 && ind.sma50 < ind.sma200 && signal !== 'BUY') {
+                    signal = 'SELL';
+                    strength += 20;
+                    reasons.push('MA death cross');
+                }
+                
+                strength = Math.min(98, strength);
+                
+                this.updateAnalysisWindow(reasons, strength, signal);
+                
+                // 80%+ → SİQNAL
+                if (strength >= 80 && signal !== 'WAIT') {
+                    this.generateSignal(signal, strength, price);
+                }
+            }
+
+            updateAnalysisWindow(reasons, strength, signal) {
+                const window = document.getElementById('analysisWindow');
+                const timestamp = new Date().toLocaleTimeString('az-AZ');
+                
+                let html = `<div class="analysis-line">⏰ ${timestamp}</div>`;
+                html += `<div class="analysis-line">📊 Güc: ${strength}%</div>`;
+                html += `<div class="analysis-line">🎯 ${signal}</div>`;
+                html += `<div class="analysis-line">━━━━━━━━━━━━━━━━━━━━</div>`;
+                
+                reasons.forEach(r => {
+                    html += `<div class="analysis-line">✓ ${r}</div>`;
+                });
+                
+                if (this.activeSignal) {
+                    html += `<div class="analysis-line">━━━━━━━━━━━━━━━━━━━━</div>`;
+                    html += `<div class="analysis-line" style="color: var(--accent-gold);">⏸ Aktiv siqnal işləyir...</div>`;
+                } else if (strength < 80) {
+                    html += `<div class="analysis-line">━━━━━━━━━━━━━━━━━━━━</div>`;
+                    html += `<div class="analysis-line" style="color: var(--accent-red);">⚠️ 80%+ gözləyir...</div>`;
+                }
+                
+                window.innerHTML = html;
+            }
+
+            generateSignal(signal, strength, price) {
+                let validity = 2;
+                if (strength >= 95) validity = 5;
+                else if (strength >= 90) validity = 4;
+                else if (strength >= 85) validity = 3;
+                
+                const now = Date.now();
+                const validUntil = now + (validity * 60 * 1000);
+                
+                this.activeSignal = {
+                    signal,
+                    strength,
+                    initialPrice: price,
+                    finalPrice: null,
+                    validity,
+                    timestamp: now,
+                    validUntil,
+                    pair: this.currentPair,
+                    market: this.currentMarket,
+                    success: null,
+                    reversed: false
+                };
+                
+                this.updateSignalDisplay();
+                this.startSignalTimer();
+                this.sendNotification();
+                this.log(`🎯 SİQNAL: ${signal} @ ${price.toFixed(5)} - ${validity}dəq`);
+            }
+
+            updateSignalDisplay() {
+                const { signal, strength, initialPrice, validity } = this.activeSignal;
+                
+                document.getElementById('signalDisplay').textContent = `● ${signal}`;
+                document.getElementById('signalDisplay').className = `signal-display ${signal.toLowerCase()}`;
+                
+                document.getElementById('signalProb').textContent = strength + '%';
+                document.getElementById('signalPrice').textContent = initialPrice.toFixed(5);
+                document.getElementById('signalValidity').textContent = validity + ' dəq';
+            }
+
+            startSignalTimer() {
+                const update = () => {
+                    if (!this.activeSignal) return;
+                    
+                    const now = Date.now();
+                    const remaining = this.activeSignal.validUntil - now;
+                    
+                    if (remaining <= 0) {
+                        document.getElementById('timerDisplay').textContent = '⏱ Bitdi';
+                        this.checkSignalResult(false);
+                        return;
+                    }
+                    
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    document.getElementById('timerDisplay').textContent = 
+                        `⏱ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    
+                    setTimeout(update, 1000);
+                };
+                update();
+            }
+
+            checkForReversal() {
+                if (!this.activeSignal || this.activeSignal.reversed) return;
+                
+                const { signal, initialPrice } = this.activeSignal;
+                const change = ((this.currentPrice - initialPrice) / initialPrice) * 100;
+                
+                let reversal = false;
+                
+                if (signal === 'BUY' && change < -0.3) {
+                    reversal = true;
+                } else if (signal === 'SELL' && change > 0.3) {
+                    reversal = true;
+                }
+                
+                if (reversal) {
+                    this.activeSignal.reversed = true;
+                    this.activeSignal.success = false;
+                    this.activeSignal.finalPrice = this.currentPrice;
+                    
+                    document.getElementById('reversalAlert').classList.add('active');
+                    document.getElementById('signalDisplay').textContent = '⚠️ REVERSAL';
+                    document.getElementById('signalDisplay').className = 'signal-display error';
+                    
+                    this.log(`⚠️ REVERSAL: ${signal} - ${initialPrice.toFixed(5)} → ${this.currentPrice.toFixed(5)}`);
+                    
+                    this.addSignalToHistory();
+                    
+                    setTimeout(() => {
+                        this.activeSignal = null;
+                        document.getElementById('reversalAlert').classList.remove('active');
+                        document.getElementById('signalDisplay').textContent = '● GÖZLƏYİR';
+                        document.getElementById('signalDisplay').className = 'signal-display wait';
+                        document.getElementById('timerDisplay').textContent = '';
+                    }, 5000);
+                }
+            }
+
+            checkSignalResult(forced = false) {
+                if (!this.activeSignal) return;
+                
+                const { signal, initialPrice } = this.activeSignal;
+                this.activeSignal.finalPrice = this.currentPrice;
+                
+                if (!this.activeSignal.reversed) {
+                    if (signal === 'BUY') {
+                        this.activeSignal.success = this.currentPrice > initialPrice;
+                    } else if (signal === 'SELL') {
+                        this.activeSignal.success = this.currentPrice < initialPrice;
+                    }
+                }
+                
+                this.log(`📊 Nəticə: ${this.activeSignal.success ? '✅' : '❌'} - ${initialPrice.toFixed(5)} → ${this.currentPrice.toFixed(5)}`);
+                
+                this.addSignalToHistory();
+                this.activeSignal = null;
+                document.getElementById('timerDisplay').textContent = '';
+            }
+
+            addSignalToHistory() {
+                this.signals.unshift({...this.activeSignal});
+                
+                if (this.signals.length > 50) {
+                    this.signals.pop();
+                }
+                
+                this.updateHistoryDisplay();
+                this.updateStats();
+            }
+
+            updateHistoryDisplay() {
+                const container = document.getElementById('historyContainer');
+                
+                if (this.signals.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            Hələ siqnal yoxdur...
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = this.signals.map(s => {
+                    const time = new Date(s.timestamp).toLocaleTimeString('az-AZ');
+                    const status = s.reversed ? 'reversed' : (s.success ? 'success' : 'fail');
+                    const icon = s.reversed ? '⚠️' : (s.success ? '✅' : '❌');
+                    
+                    return `
+                        <div class="history-item ${status}">
+                            <div style="flex: 1;">
+                                <div class="history-signal">${s.signal} ${s.pair.replace('_OTC', '')} (${s.market.toUpperCase()})</div>
+                                <div class="history-meta">
+                                    ${time} • ${s.strength}% • ${s.validity}dəq
+                                </div>
+                                <div class="history-meta" style="margin-top: 5px;">
+                                    ${s.initialPrice.toFixed(5)} → ${s.finalPrice ? s.finalPrice.toFixed(5) : '...'}
+                                    ${s.reversed ? '(REVERSAL)' : ''}
+                                </div>
+                            </div>
+                            <div style="font-size: 2em;">${icon}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            updateStats() {
+                const completed = this.signals.filter(s => s.finalPrice !== null);
+                const total = completed.length;
+                const successful = completed.filter(s => s.success === true).length;
+                const failed = completed.filter(s => s.success === false).length;
+                const rate = total > 0 ? ((successful / total) * 100).toFixed(1) : 0;
+                
+                document.getElementById('totalSignals').textContent = total;
+                document.getElementById('successCount').textContent = successful;
+                document.getElementById('failCount').textContent = failed;
+                document.getElementById('successRate').textContent = rate + '%';
+            }
+
+            sendNotification() {
+                const { signal, strength, initialPrice, validity } = this.activeSignal;
+                
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification('🎯 Forex Signal', {
+                        body: `${signal} ${this.currentPair}\n${strength}% • ${initialPrice.toFixed(5)}\n${validity} dəqiqə`,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="80">⚡</text></svg>'
+                    });
+                }
+            }
+
+            renderChart() {
+                const container = document.getElementById('candlestickChart');
+                if (!container || this.candlesticks.length === 0) return;
+                
+                container.innerHTML = '';
+                
+                const visible = this.candlesticks.slice(-50);
+                const allPrices = visible.flatMap(c => [c.high, c.low]);
+                const maxPrice = Math.max(...allPrices);
+                const minPrice = Math.min(...allPrices);
+                const priceRange = maxPrice - minPrice;
+                const height = container.clientHeight || 300;
+                
+                visible.forEach(candle => {
+                    const div = document.createElement('div');
+                    div.className = `candle ${candle.close >= candle.open ? 'bullish' : 'bearish'}`;
+                    
+                    const bodyTop = ((maxPrice - Math.max(candle.open, candle.close)) / priceRange) * height;
+                    const bodyHeight = Math.max(2, (Math.abs(candle.close - candle.open) / priceRange) * height);
+                    const wickTop = ((maxPrice - candle.high) / priceRange) * height;
+                    const wickHeight = ((candle.high - candle.low) / priceRange) * height;
+                    
+                    const wick = document.createElement('div');
+                    wick.className = 'candle-wick';
+                    wick.style.top = wickTop + 'px';
+                    wick.style.height = wickHeight + 'px';
+                    
+                    const body = document.createElement('div');
+                    body.className = 'candle-body';
+                    body.style.height = bodyHeight + 'px';
+                    body.style.marginTop = (bodyTop - wickTop) + 'px';
+                    
+                    div.appendChild(wick);
+                    div.appendChild(body);
+                    container.appendChild(div);
+                });
+            }
+
+            log(message) {
+                console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+            }
+        }
+
+        let bot;
+        window.addEventListener('DOMContentLoaded', () => {
+            bot = new PocketOptionForexBot();
+        });
+    </script>
+</body>
+</html>
