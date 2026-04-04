@@ -55,6 +55,9 @@ export default function SignalDisplay({
       ? "pulse-red 2s ease-in-out infinite"
       : "none";
 
+  // Azerbaijani signal label for Pocket Option 1-minute trades
+  const signalLabel = isBuy ? "1 dəq AL" : isSell ? "1 dəq SAT" : "";
+
   return (
     <div className="w-full" data-ocid="signal.panel">
       <AnimatePresence mode="wait">
@@ -87,14 +90,14 @@ export default function SignalDisplay({
                     &#x25cf;
                   </span>
                   <span
-                    className="text-5xl font-black tracking-wider"
+                    className="text-4xl font-black tracking-wider"
                     style={{
                       color: signalColor,
                       textShadow: `0 0 30px ${signalColor}66`,
                     }}
                     data-ocid={`signal.${activeSignal.direction.toLowerCase()}_button`}
                   >
-                    {activeSignal.direction}
+                    {signalLabel}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -113,16 +116,12 @@ export default function SignalDisplay({
                   <span
                     className="text-xs px-2 py-0.5 rounded"
                     style={{
-                      backgroundColor:
-                        activeSignal.market === "real"
-                          ? "rgba(0,212,255,0.15)"
-                          : "rgba(255,215,0,0.15)",
-                      color:
-                        activeSignal.market === "real" ? "#00d4ff" : "#ffd700",
-                      border: `1px solid ${activeSignal.market === "real" ? "#00d4ff33" : "#ffd70033"}`,
+                      backgroundColor: "rgba(0,212,255,0.15)",
+                      color: "#00d4ff",
+                      border: "1px solid #00d4ff33",
                     }}
                   >
-                    {activeSignal.market.toUpperCase()}
+                    REAL M1
                   </span>
                 </div>
               </div>
@@ -269,7 +268,7 @@ export default function SignalDisplay({
                       GÜCLƌNİR...
                     </span>
                     <span className="text-sm" style={{ color: "#8b92a8" }}>
-                      Analiz: {analysisStrength.toFixed(0)}% — 80% haddini
+                      Analiz: {analysisStrength.toFixed(0)}% — 75% haddini
                       gözləyir
                     </span>
                   </>
@@ -296,7 +295,7 @@ export default function SignalDisplay({
                     className="text-xs uppercase tracking-widest"
                     style={{ color: "#8b92a8" }}
                   >
-                    BUY
+                    AL
                   </span>
                   <span
                     className="text-xl font-bold"
@@ -313,7 +312,7 @@ export default function SignalDisplay({
                     className="text-xs uppercase tracking-widest"
                     style={{ color: "#8b92a8" }}
                   >
-                    SELL
+                    SAT
                   </span>
                   <span
                     className="text-xl font-bold"

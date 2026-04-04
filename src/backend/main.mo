@@ -133,9 +133,10 @@ actor {
     await OutCall.httpGetRequest(url, [], transform);
   };
 
+  // Fetch real M1 (1-minute) candles - returns 200 candles by default
   public func getForexCandles(pair : Text, interval : Text) : async Text {
     let url = "https://api.twelvedata.com/time_series?symbol=" # pair #
-      "&interval=" # interval # "&outputsize=60&apikey=44c2051d28f84197a0b07bdb85c38a85";
+      "&interval=" # interval # "&outputsize=200&apikey=44c2051d28f84197a0b07bdb85c38a85";
     await OutCall.httpGetRequest(url, [], transform);
   };
 };

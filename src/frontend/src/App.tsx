@@ -15,6 +15,7 @@ export default function App() {
   const handleSignalComplete = useCallback(() => {
     setStatsRefresh((p) => p + 1);
   }, []);
+
   const { state, selectPair } = useForexBot(handleSignalComplete);
   const [statsRefresh, setStatsRefresh] = useState(0);
   const [activeTab, setActiveTab] = useState("live");
@@ -55,11 +56,12 @@ export default function App() {
             className="text-[10px] uppercase tracking-widest"
             style={{ color: "#8b92a8" }}
           >
-            AI-Powered Technical Analysis
+            Real M1 · AI-Powered Technical Analysis
           </span>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* API Connection status */}
           <div className="flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full"
@@ -75,24 +77,27 @@ export default function App() {
               className="text-[10px] uppercase tracking-widest"
               style={{ color: state.apiConnected ? "#00ff88" : "#ff1744" }}
             >
-              {state.apiConnected ? "CANLI" : "BAĞLANİR"}
+              {state.isLoading
+                ? "YÜKLƏNİR"
+                : state.apiConnected
+                  ? "CANLI"
+                  : "XƎTa"}
             </span>
           </div>
 
+          {/* REAL badge */}
           <span
             className="text-[10px] px-2 py-1 rounded font-bold uppercase tracking-widest"
             style={{
-              backgroundColor:
-                state.currentMarket === "real"
-                  ? "rgba(0,212,255,0.12)"
-                  : "rgba(255,215,0,0.12)",
-              color: state.currentMarket === "real" ? "#00d4ff" : "#ffd700",
-              border: `1px solid ${state.currentMarket === "real" ? "#00d4ff33" : "#ffd70033"}`,
+              backgroundColor: "rgba(0,212,255,0.12)",
+              color: "#00d4ff",
+              border: "1px solid #00d4ff33",
             }}
           >
-            {state.currentMarket === "real" ? "REAL" : "OTC"}
+            REAL M1
           </span>
 
+          {/* Live price display */}
           {state.currentPrice !== null && (
             <div
               className="flex items-center gap-1 px-3 py-1 rounded"
@@ -105,7 +110,7 @@ export default function App() {
                 className="text-[10px] uppercase"
                 style={{ color: "#8b92a8" }}
               >
-                {state.currentPair.replace("_OTC", "")}
+                {state.currentPair}
               </span>
               <span
                 className="text-sm font-bold"
@@ -165,65 +170,6 @@ export default function App() {
                 transition={{ duration: 0.25 }}
                 className="flex flex-col gap-4"
               >
-                {/* Market Toggle */}
-                <div className="flex gap-2" data-ocid="market.toggle">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      selectPair(state.currentPair.replace("_OTC", ""), "real")
-                    }
-                    data-ocid="market.real.button"
-                    className="flex-1 py-2 rounded-lg font-bold text-sm tracking-widest uppercase transition-all duration-200 cursor-pointer"
-                    style={{
-                      backgroundColor:
-                        state.currentMarket === "real"
-                          ? "rgba(0,212,255,0.15)"
-                          : "rgba(255,255,255,0.03)",
-                      border: `1px solid ${
-                        state.currentMarket === "real"
-                          ? "#00d4ff"
-                          : "rgba(255,255,255,0.08)"
-                      }`,
-                      color:
-                        state.currentMarket === "real" ? "#00d4ff" : "#8b92a8",
-                      boxShadow:
-                        state.currentMarket === "real"
-                          ? "0 0 20px rgba(0,212,255,0.2)"
-                          : "none",
-                    }}
-                  >
-                    🌐 REAL BAZAR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const base = state.currentPair.replace("_OTC", "");
-                      selectPair(`${base}_OTC`, "otc");
-                    }}
-                    data-ocid="market.otc.button"
-                    className="flex-1 py-2 rounded-lg font-bold text-sm tracking-widest uppercase transition-all duration-200 cursor-pointer"
-                    style={{
-                      backgroundColor:
-                        state.currentMarket === "otc"
-                          ? "rgba(255,215,0,0.15)"
-                          : "rgba(255,255,255,0.03)",
-                      border: `1px solid ${
-                        state.currentMarket === "otc"
-                          ? "#ffd700"
-                          : "rgba(255,255,255,0.08)"
-                      }`,
-                      color:
-                        state.currentMarket === "otc" ? "#ffd700" : "#8b92a8",
-                      boxShadow:
-                        state.currentMarket === "otc"
-                          ? "0 0 20px rgba(255,215,0,0.2)"
-                          : "none",
-                    }}
-                  >
-                    🔵 OTC BAZAR
-                  </button>
-                </div>
-
                 {/* Main Content Grid */}
                 <div
                   className="grid gap-4"
@@ -235,11 +181,11 @@ export default function App() {
                   <div className="flex flex-col gap-3">
                     <PairSelector
                       currentPair={state.currentPair}
-                      currentMarket={state.currentMarket}
                       currentPrice={state.currentPrice}
                       onSelect={selectPair}
                     />
 
+                    {/* Price display / loading / error */}
                     {state.isLoading ? (
                       <div
                         className="rounded-lg flex items-center justify-center py-4"
@@ -261,9 +207,38 @@ export default function App() {
                             style={{ color: "#8b92a8" }}
                             className="text-sm"
                           >
-                            Qiymət yüklənir...
+                            Real M1 məlumatları yüklənir...
                           </span>
                         </div>
+                      </div>
+                    ) : state.loadError ? (
+                      <div
+                        className="rounded-lg flex flex-col items-center justify-center py-4 gap-2"
+                        style={{
+                          backgroundColor: "rgba(255,23,68,0.06)",
+                          border: "1px solid rgba(255,23,68,0.2)",
+                        }}
+                        data-ocid="price.error_state"
+                      >
+                        <span
+                          className="text-sm font-bold"
+                          style={{ color: "#ff1744" }}
+                        >
+                          ❌ API Xətası
+                        </span>
+                        <span
+                          className="text-xs text-center px-4"
+                          style={{ color: "#ff1744", opacity: 0.8 }}
+                        >
+                          {state.loadError}
+                        </span>
+                        <span
+                          className="text-[10px]"
+                          style={{ color: "#8b92a8" }}
+                        >
+                          Twelve Data limiti keçmiş ola bilər — 1 dəqiqə
+                          gözləyin
+                        </span>
                       </div>
                     ) : (
                       <div
@@ -277,8 +252,7 @@ export default function App() {
                           className="text-xs uppercase tracking-widest"
                           style={{ color: "#8b92a8" }}
                         >
-                          {state.currentPair.replace("_OTC", "")}{" "}
-                          {state.currentMarket === "otc" ? "(OTC)" : ""}
+                          {state.currentPair} · M1
                         </span>
                         <span
                           className="text-2xl font-black"

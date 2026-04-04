@@ -1,36 +1,27 @@
-import { OTC_PAIRS, REAL_PAIRS } from "../hooks/useForexBot";
+import { REAL_PAIRS } from "../hooks/useForexBot";
 
 interface PairSelectorProps {
   currentPair: string;
-  currentMarket: "real" | "otc";
   currentPrice: number | null;
-  onSelect: (pair: string, market: "real" | "otc") => void;
+  onSelect: (pair: string) => void;
 }
 
 export default function PairSelector({
   currentPair,
-  currentMarket,
   currentPrice,
   onSelect,
 }: PairSelectorProps) {
-  const pairs = currentMarket === "real" ? REAL_PAIRS : OTC_PAIRS;
-  const displayPairs =
-    currentMarket === "otc"
-      ? OTC_PAIRS.map((p) => p.replace("_OTC", ""))
-      : REAL_PAIRS;
-
   return (
     <div className="w-full" data-ocid="pair_selector.panel">
-      <div className="grid grid-cols-5 gap-1.5">
-        {pairs.map((pair, idx) => {
+      <div className="grid grid-cols-4 gap-1.5">
+        {REAL_PAIRS.map((pair, idx) => {
           const isActive = currentPair === pair;
-          const displayLabel = displayPairs[idx];
           return (
             <button
               key={pair}
               type="button"
               data-ocid={`pair_selector.button.${idx + 1}`}
-              onClick={() => onSelect(pair, currentMarket)}
+              onClick={() => onSelect(pair)}
               style={{
                 backgroundColor: isActive
                   ? "rgba(0,212,255,0.15)"
@@ -47,7 +38,7 @@ export default function PairSelector({
                   fontFamily: "'JetBrains Mono', monospace",
                 }}
               >
-                {displayLabel}
+                {pair}
               </span>
               {isActive && currentPrice !== null && (
                 <span
