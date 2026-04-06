@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useState } from "react";
 import AnalysisLog from "./components/AnalysisLog";
+import ApiStatusBar from "./components/ApiStatusBar";
 import CandlestickChart from "./components/CandlestickChart";
 import IndicatorPanel from "./components/IndicatorPanel";
 import PairSelector from "./components/PairSelector";
@@ -24,6 +25,11 @@ export default function App() {
     setActiveTab(tab);
     if (tab === "history") setStatsRefresh((p) => p + 1);
   };
+
+  // Only show full error box when we have no price data at all.
+  // If we already have a price, show subtle warning in ApiStatusBar instead.
+  const showFullError =
+    state.loadError !== null && state.currentPrice === null && !state.isLoading;
 
   return (
     <div
@@ -66,22 +72,36 @@ export default function App() {
             <span
               className="w-2 h-2 rounded-full"
               style={{
-                backgroundColor: state.apiConnected ? "#00ff88" : "#ff1744",
+                backgroundColor: state.apiConnected
+                  ? "#00ff88"
+                  : state.loadError
+                    ? "#ffb300"
+                    : "#ff1744",
                 boxShadow: state.apiConnected
                   ? "0 0 6px #00ff88"
-                  : "0 0 6px #ff1744",
+                  : state.loadError && state.currentPrice !== null
+                    ? "0 0 6px #ffb300"
+                    : "0 0 6px #ff1744",
                 animation: "pulse 2s ease-in-out infinite",
               }}
             />
             <span
               className="text-[10px] uppercase tracking-widest"
-              style={{ color: state.apiConnected ? "#00ff88" : "#ff1744" }}
+              style={{
+                color: state.apiConnected
+                  ? "#00ff88"
+                  : state.loadError && state.currentPrice !== null
+                    ? "#ffb300"
+                    : "#ff1744",
+              }}
             >
               {state.isLoading
                 ? "YÜKLƏNİR"
                 : state.apiConnected
                   ? "CANLI"
-                  : "XƎTa"}
+                  : state.loadError && state.currentPrice !== null
+                    ? "KESİLDİ"
+                    : "XƏTƏ"}
             </span>
           </div>
 
@@ -156,7 +176,7 @@ export default function App() {
                 letterSpacing: "0.1em",
               }}
             >
-              📈 TARİXÇƎ
+              📈 TARİXÇƏ
             </TabsTrigger>
           </TabsList>
 
@@ -170,6 +190,16 @@ export default function App() {
                 transition={{ duration: 0.25 }}
                 className="flex flex-col gap-4"
               >
+                {/* API Status Bar */}
+                <ApiStatusBar
+                  apiConnected={state.apiConnected}
+                  isLoading={state.isLoading}
+                  loadError={state.loadError}
+                  candleCount={state.candles.length}
+                  lastUpdated={state.lastUpdated}
+                  analysisStrength={state.analysisStrength}
+                />
+
                 {/* Main Content Grid */}
                 <div
                   className="grid gap-4"
@@ -211,7 +241,7 @@ export default function App() {
                           </span>
                         </div>
                       </div>
-                    ) : state.loadError ? (
+                    ) : showFullError ? (
                       <div
                         className="rounded-lg flex flex-col items-center justify-center py-4 gap-2"
                         style={{
@@ -245,15 +275,27 @@ export default function App() {
                         className="rounded-lg px-4 py-3 flex items-center justify-between"
                         style={{
                           backgroundColor: "rgba(255,255,255,0.02)",
-                          border: "1px solid rgba(255,255,255,0.06)",
+                          border: state.loadError
+                            ? "1px solid rgba(255,179,0,0.25)"
+                            : "1px solid rgba(255,255,255,0.06)",
                         }}
                       >
-                        <span
-                          className="text-xs uppercase tracking-widest"
-                          style={{ color: "#8b92a8" }}
-                        >
-                          {state.currentPair} · M1
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <span
+                            className="text-xs uppercase tracking-widest"
+                            style={{ color: "#8b92a8" }}
+                          >
+                            {state.currentPair} · M1
+                          </span>
+                          {state.loadError && (
+                            <span
+                              className="text-[10px]"
+                              style={{ color: "#ffb300" }}
+                            >
+                              ⚠️ Yenilənmə kəsildi — son qiymət
+                            </span>
+                          )}
+                        </div>
                         <span
                           className="text-2xl font-black"
                           style={{
@@ -277,6 +319,7 @@ export default function App() {
                     <IndicatorPanel
                       indicators={state.indicators}
                       votes={state.signalResult?.votes ?? []}
+                      signalResult={state.signalResult}
                     />
                     <AnalysisLog logs={state.analysisLog} />
                   </div>

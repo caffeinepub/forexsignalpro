@@ -55,8 +55,18 @@ export default function SignalDisplay({
       ? "pulse-red 2s ease-in-out infinite"
       : "none";
 
-  // Azerbaijani signal label for Pocket Option 1-minute trades
   const signalLabel = isBuy ? "1 dəq AL" : isSell ? "1 dəq SAT" : "";
+
+  // Volume confirmation from current signal result
+  const vc = signalResult?.volumeConfirmation;
+  const vcColor =
+    vc?.status === "CONFIRMS"
+      ? "#00ff88"
+      : vc?.status === "CONTRADICTS"
+        ? "#ff1744"
+        : vc?.status === "WEAK"
+          ? "#ffd700"
+          : "#8b92a8";
 
   return (
     <div className="w-full" data-ocid="signal.panel">
@@ -124,6 +134,44 @@ export default function SignalDisplay({
                     REAL M1
                   </span>
                 </div>
+
+                {/* Volume confirmation badge */}
+                {vc && (
+                  <div
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-md"
+                    style={{
+                      backgroundColor: `${vcColor}15`,
+                      border: `1px solid ${vcColor}44`,
+                    }}
+                  >
+                    <span
+                      style={{ color: vcColor, fontSize: 10, fontWeight: 700 }}
+                    >
+                      {vc.status === "CONFIRMS"
+                        ? "\u2714"
+                        : vc.status === "CONTRADICTS"
+                          ? "\u26a0"
+                          : "\u25cb"}
+                    </span>
+                    <span
+                      className="text-[10px] font-semibold"
+                      style={{ color: vcColor }}
+                    >
+                      {vc.label}
+                    </span>
+                    {vc.isHigh && (
+                      <span
+                        className="text-[8px] font-bold px-1 rounded"
+                        style={{
+                          color: "#ffd700",
+                          backgroundColor: "rgba(255,215,0,0.15)",
+                        }}
+                      >
+                        YÜKSƎK
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col items-center gap-2">
@@ -265,7 +313,7 @@ export default function SignalDisplay({
                       className="text-2xl font-black"
                       style={{ color: "#ffd700" }}
                     >
-                      GÜCLƌNİR...
+                      GÜCLƎNİR...
                     </span>
                     <span className="text-sm" style={{ color: "#8b92a8" }}>
                       Analiz: {analysisStrength.toFixed(0)}% — 75% haddini
@@ -288,61 +336,90 @@ export default function SignalDisplay({
               </div>
             </div>
 
-            {signalResult && (
-              <div className="flex gap-6 text-center">
-                <div className="flex flex-col gap-1">
+            <div className="flex flex-col items-end gap-2">
+              {signalResult && (
+                <div className="flex gap-6 text-center">
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className="text-xs uppercase tracking-widest"
+                      style={{ color: "#8b92a8" }}
+                    >
+                      AL
+                    </span>
+                    <span
+                      className="text-xl font-bold"
+                      style={{
+                        color: "#00ff88",
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {signalResult.buyScore}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className="text-xs uppercase tracking-widest"
+                      style={{ color: "#8b92a8" }}
+                    >
+                      SAT
+                    </span>
+                    <span
+                      className="text-xl font-bold"
+                      style={{
+                        color: "#ff1744",
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {signalResult.sellScore}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className="text-xs uppercase tracking-widest"
+                      style={{ color: "#8b92a8" }}
+                    >
+                      GÜC
+                    </span>
+                    <span
+                      className="text-xl font-bold"
+                      style={{
+                        color: analysisStrength >= 60 ? "#ffd700" : "#8b92a8",
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {analysisStrength.toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Volume confirmation in waiting state */}
+              {vc && (
+                <div
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-md"
+                  style={{
+                    backgroundColor: `${vcColor}15`,
+                    border: `1px solid ${vcColor}44`,
+                  }}
+                >
                   <span
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: "#8b92a8" }}
+                    style={{ color: vcColor, fontSize: 10, fontWeight: 700 }}
                   >
-                    AL
+                    {vc.status === "CONFIRMS"
+                      ? "\u2714"
+                      : vc.status === "CONTRADICTS"
+                        ? "\u26a0"
+                        : "\u25cb"}
                   </span>
                   <span
-                    className="text-xl font-bold"
-                    style={{
-                      color: "#00ff88",
-                      fontFamily: "'JetBrains Mono', monospace",
-                    }}
+                    className="text-[10px] font-semibold"
+                    style={{ color: vcColor }}
                   >
-                    {signalResult.buyScore}
+                    {vc.label}
                   </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: "#8b92a8" }}
-                  >
-                    SAT
-                  </span>
-                  <span
-                    className="text-xl font-bold"
-                    style={{
-                      color: "#ff1744",
-                      fontFamily: "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    {signalResult.sellScore}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: "#8b92a8" }}
-                  >
-                    GÜC
-                  </span>
-                  <span
-                    className="text-xl font-bold"
-                    style={{
-                      color: analysisStrength >= 60 ? "#ffd700" : "#8b92a8",
-                      fontFamily: "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    {analysisStrength.toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

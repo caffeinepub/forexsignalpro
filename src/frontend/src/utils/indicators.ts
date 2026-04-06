@@ -150,6 +150,109 @@ export function calcVolumeAnalysis(candles: Candle[]): {
   return { trend, ratio };
 }
 
+/**
+ * Advanced Volume Pressure Analysis
+ * Separates buying pressure (up-candle volume) from selling pressure (down-candle volume)
+ * over last N candles to determine which side dominates.
+ */
+export function calcVolumePressure(
+  candles: Candle[],
+  period = 20,
+): {
+  buyVolume: number;
+  sellVolume: number;
+  totalVolume: number;
+  buyRatio: number; // 0-1, how much of volume is buying
+  sellRatio: number; // 0-1, how much of volume is selling
+  dominance: "BUY" | "SELL" | "NEUTRAL";
+  dominanceStrength: number; // 0-100, how strong the dominance is
+  avgVolume: number;
+  currentVolume: number;
+  volumeIsHigh: boolean; // current candle volume > 130% of avg
+  volumeConfirmsBuy: boolean; // volume confirms buy direction
+  volumeConfirmsSell: boolean; // volume confirms sell direction
+} {
+  if (candles.length < period) {
+    return {
+      buyVolume: 0,
+      sellVolume: 0,
+      totalVolume: 0,
+      buyRatio: 0.5,
+      sellRatio: 0.5,
+      dominance: "NEUTRAL",
+      dominanceStrength: 0,
+      avgVolume: 0,
+      currentVolume: 0,
+      volumeIsHigh: false,
+      volumeConfirmsBuy: false,
+      volumeConfirmsSell: false,
+    };
+  }
+
+  const slice = candles.slice(-period);
+  let buyVolume = 0;
+  let sellVolume = 0;
+
+  for (const c of slice) {
+    const bodySize = Math.abs(c.close - c.open);
+    const totalRange = c.high - c.low || 0.00001;
+    // Weight volume by how much of the candle body is bullish/bearish
+    const bodyRatio = bodySize / totalRange;
+    if (c.close > c.open) {
+      // Bullish candle: attribute body portion to buy, wick to sell
+      buyVolume += c.volume * (0.5 + bodyRatio * 0.5);
+      sellVolume += c.volume * (0.5 - bodyRatio * 0.5);
+    } else if (c.close < c.open) {
+      // Bearish candle: attribute body portion to sell, wick to buy
+      sellVolume += c.volume * (0.5 + bodyRatio * 0.5);
+      buyVolume += c.volume * (0.5 - bodyRatio * 0.5);
+    } else {
+      // Doji: split evenly
+      buyVolume += c.volume * 0.5;
+      sellVolume += c.volume * 0.5;
+    }
+  }
+
+  const totalVolume = buyVolume + sellVolume;
+  const buyRatio = totalVolume > 0 ? buyVolume / totalVolume : 0.5;
+  const sellRatio = totalVolume > 0 ? sellVolume / totalVolume : 0.5;
+
+  // Dominance: need at least 55% of volume on one side to be significant
+  let dominance: "BUY" | "SELL" | "NEUTRAL" = "NEUTRAL";
+  let dominanceStrength = 0;
+  if (buyRatio >= 0.55) {
+    dominance = "BUY";
+    dominanceStrength = Math.min(100, (buyRatio - 0.5) * 200);
+  } else if (sellRatio >= 0.55) {
+    dominance = "SELL";
+    dominanceStrength = Math.min(100, (sellRatio - 0.5) * 200);
+  }
+
+  // Average volume and current candle volume
+  const avgVolume = slice.reduce((sum, c) => sum + c.volume, 0) / period;
+  const currentVolume = candles[candles.length - 1].volume;
+  const volumeIsHigh = avgVolume > 0 && currentVolume >= avgVolume * 1.3;
+
+  // Final confirmation flags
+  const volumeConfirmsBuy = dominance === "BUY" && dominanceStrength >= 20;
+  const volumeConfirmsSell = dominance === "SELL" && dominanceStrength >= 20;
+
+  return {
+    buyVolume,
+    sellVolume,
+    totalVolume,
+    buyRatio,
+    sellRatio,
+    dominance,
+    dominanceStrength,
+    avgVolume,
+    currentVolume,
+    volumeIsHigh,
+    volumeConfirmsBuy,
+    volumeConfirmsSell,
+  };
+}
+
 export function calcFibonacciLevels(candles: Candle[]): {
   level236: number;
   level382: number;
@@ -212,6 +315,7 @@ export interface AllIndicators {
   adx: number | null;
   momentum: number | null;
   volume: { trend: "up" | "down" | "neutral"; ratio: number };
+  volumePressure: ReturnType<typeof calcVolumePressure>;
   fibonacci: {
     level236: number;
     level382: number;
@@ -245,6 +349,7 @@ export function calcAllIndicators(
     adx: calcADX(candles, 14),
     momentum: calcMomentum(prices, 10),
     volume: calcVolumeAnalysis(candles),
+    volumePressure: calcVolumePressure(candles, 20),
     fibonacci: calcFibonacciLevels(candles),
     sr: calcSupportResistance(candles),
     trendStrength: calcTrendStrength(prices),

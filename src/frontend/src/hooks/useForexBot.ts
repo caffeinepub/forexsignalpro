@@ -40,6 +40,7 @@ export interface BotState {
   loadError: string | null;
   apiConnected: boolean;
   analysisStrength: number;
+  lastUpdated: number | null;
 }
 
 interface TwelveDataCandle {
@@ -69,7 +70,6 @@ function parseTwelveDataResponse(raw: string): {
     return { candles: [], error: "JSON parse xətası" };
   }
 
-  // Check for API error response
   if (parsed.code !== undefined && parsed.code !== 200) {
     return {
       candles: [],
@@ -84,7 +84,6 @@ function parseTwelveDataResponse(raw: string): {
     return { candles: [], error: "Məlumat boşdur" };
   }
 
-  // Twelve Data returns newest-first, reverse for chronological order
   const reversed = [...parsed.values].reverse();
 
   const candles: Candle[] = reversed.map((v) => ({
@@ -115,6 +114,7 @@ export function useForexBot(onSignalComplete?: () => void) {
     loadError: null,
     apiConnected: false,
     analysisStrength: 0,
+    lastUpdated: null,
   });
 
   const stateRef = useRef(state);
@@ -133,7 +133,6 @@ export function useForexBot(onSignalComplete?: () => void) {
     }));
   }, []);
 
-  // Fetch candles from backend and update state
   const fetchCandles = useCallback(
     async (pair: string, isInitial: boolean) => {
       if (fetchingRef.current && !isInitial) return;
@@ -158,6 +157,12 @@ export function useForexBot(onSignalComplete?: () => void) {
               loadError: error,
               apiConnected: false,
             }));
+          } else {
+            setState((prev) => ({
+              ...prev,
+              loadError: error,
+              apiConnected: false,
+            }));
           }
           return;
         }
@@ -174,13 +179,13 @@ export function useForexBot(onSignalComplete?: () => void) {
           return;
         }
 
-        // Check if we have new candles (for periodic refresh)
         const newestDatetime = new Date(
           candles[candles.length - 1].timestamp,
         ).toISOString();
         if (!isInitial && lastCandleDatetimeRef.current === newestDatetime) {
-          // No new candle yet, still update the current price from last close
           addLog("⏳ Yeni mum gözlənilir...");
+          // Still update lastUpdated so user sees the poll happened
+          setState((prev) => ({ ...prev, lastUpdated: Date.now() }));
           fetchingRef.current = false;
           return;
         }
@@ -199,6 +204,7 @@ export function useForexBot(onSignalComplete?: () => void) {
           isLoading: false,
           loadError: null,
           apiConnected: true,
+          lastUpdated: Date.now(),
         }));
 
         addLog(
@@ -211,6 +217,12 @@ export function useForexBot(onSignalComplete?: () => void) {
           setState((prev) => ({
             ...prev,
             isLoading: false,
+            loadError: msg,
+            apiConnected: false,
+          }));
+        } else {
+          setState((prev) => ({
+            ...prev,
             loadError: msg,
             apiConnected: false,
           }));
@@ -232,7 +244,6 @@ export function useForexBot(onSignalComplete?: () => void) {
     const closes = candles.map((c) => c.close);
     const result = generateSignal(indicators, currentPrice, candles);
 
-    // Check active signal for reversal
     if (activeSignal) {
       const change =
         ((currentPrice - activeSignal.entryPrice) / activeSignal.entryPrice) *
@@ -261,7 +272,6 @@ export function useForexBot(onSignalComplete?: () => void) {
       }
     }
 
-    // Emit new signal if no active signal and strong enough
     if (!activeSignal && result.direction !== "WAIT") {
       const validity =
         result.strength >= 95
@@ -305,7 +315,6 @@ export function useForexBot(onSignalComplete?: () => void) {
       )}% | ${topVote} indikator aktiv`,
     );
 
-    // Re-calc indicators with latest closes in case price changed between fetches
     const freshInd = calcAllIndicators(closes, candles);
     setState((prev) => ({
       ...prev,
@@ -315,7 +324,6 @@ export function useForexBot(onSignalComplete?: () => void) {
     }));
   }, [addLog]);
 
-  // Watch active signal for expiry
   useEffect(() => {
     if (!state.activeSignal) return;
     const remaining = state.activeSignal.validUntil - Date.now();
@@ -349,7 +357,6 @@ export function useForexBot(onSignalComplete?: () => void) {
     }
   }, [state.activeSignal, state.currentPrice, addLog]);
 
-  // On pair change: reset state and fetch fresh candles
   useEffect(() => {
     lastCandleDatetimeRef.current = null;
     fetchingRef.current = false;
@@ -365,11 +372,11 @@ export function useForexBot(onSignalComplete?: () => void) {
       activeSignal: null,
       analysisStrength: 0,
       apiConnected: false,
+      lastUpdated: null,
     }));
 
     fetchCandles(state.currentPair, true);
 
-    // Refresh every 60 seconds (within Twelve Data free plan limit)
     const interval = setInterval(() => {
       fetchCandles(state.currentPair, false);
     }, 60000);
@@ -377,7 +384,6 @@ export function useForexBot(onSignalComplete?: () => void) {
     return () => clearInterval(interval);
   }, [state.currentPair, fetchCandles]);
 
-  // Analyze every 10 seconds (once we have data)
   useEffect(() => {
     const interval = setInterval(analyzeMarket, 10000);
     return () => clearInterval(interval);

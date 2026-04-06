@@ -15,6 +15,14 @@ export interface SignalResult {
   votes: VoteDetail[];
   buyScore: number;
   sellScore: number;
+  volumeConfirmation: {
+    status: "CONFIRMS" | "CONTRADICTS" | "WEAK" | "NEUTRAL";
+    label: string; // Azerbaijani label shown in UI
+    buyPct: number; // 0-100
+    sellPct: number; // 0-100
+    isHigh: boolean;
+    dominanceStrength: number;
+  };
 }
 
 const MAX_SCORE = 175;
@@ -405,7 +413,7 @@ export function generateSignal(
     }
   }
 
-  // Volume
+  // Legacy Volume trend vote
   if (ind.volume.trend === "up") {
     votes.push({
       indicator: "Volume",
@@ -515,6 +523,78 @@ export function generateSignal(
     }
   }
 
+  // ── Volume Pressure Analysis (new, additive bonus/penalty) ──────────────
+  const vp = ind.volumePressure;
+  const indicatorDirection: "BUY" | "SELL" =
+    buyScore > sellScore ? "BUY" : "SELL";
+
+  // Volume pressure bonus: if high volume confirms the indicator direction, add up to 15 pts
+  if (vp.dominance !== "NEUTRAL" && vp.dominanceStrength >= 20) {
+    if (vp.dominance === indicatorDirection) {
+      const bonusPts = vp.volumeIsHigh
+        ? Math.round((15 * vp.dominanceStrength) / 100)
+        : Math.round((10 * vp.dominanceStrength) / 100);
+      const capped = Math.min(15, Math.max(5, bonusPts));
+      votes.push({
+        indicator: "Vol Pressure",
+        vote: vp.dominance,
+        weight: 15,
+        points: capped,
+        reason: `${vp.dominance === "BUY" ? "Alış" : "Satış"} bask\u0131s\u0131 ${(vp.dominance === "BUY" ? vp.buyRatio : vp.sellRatio * 100).toFixed(0)}% (${vp.volumeIsHigh ? "Y\u00fcks\u0259k volume" : "Normal volume"})`,
+      });
+      if (vp.dominance === "BUY") buyScore += capped;
+      else sellScore += capped;
+    } else {
+      // Volume contradicts indicator direction -- penalty
+      const penaltyPts = Math.round((8 * vp.dominanceStrength) / 100);
+      const capped = Math.min(10, Math.max(3, penaltyPts));
+      // subtract from the dominant indicator side
+      if (indicatorDirection === "BUY")
+        buyScore = Math.max(0, buyScore - capped);
+      else sellScore = Math.max(0, sellScore - capped);
+      votes.push({
+        indicator: "Vol Pressure",
+        vote: "NEUTRAL",
+        weight: 15,
+        points: 0,
+        reason: `Volume ${vp.dominance === "BUY" ? "al\u0131\u015f" : "sat\u0131\u015f"} ist\u0131qam\u0259tind\u0259 amma siqnala z\u0131dd`,
+      });
+    }
+  } else {
+    votes.push({
+      indicator: "Vol Pressure",
+      vote: "NEUTRAL",
+      weight: 15,
+      points: 0,
+      reason: "Volume t\u0259sdiqi z\u0259if",
+    });
+  }
+
+  // Build volumeConfirmation summary for UI
+  const finalDirection: "BUY" | "SELL" = buyScore > sellScore ? "BUY" : "SELL";
+  let vcStatus: SignalResult["volumeConfirmation"]["status"] = "NEUTRAL";
+  let vcLabel = "Volume: neytral";
+
+  if (vp.dominance === "NEUTRAL" || vp.dominanceStrength < 20) {
+    vcStatus = "WEAK";
+    vcLabel = "Volume z\u0259if";
+  } else if (vp.dominance === finalDirection) {
+    vcStatus = "CONFIRMS";
+    vcLabel = `Volume t\u0259sdiq \u2713 (${finalDirection === "BUY" ? "Al\u0131\u015f" : "Sat\u0131\u015f"} bask\u0131s\u0131)`;
+  } else {
+    vcStatus = "CONTRADICTS";
+    vcLabel = `Volume z\u0131dd \u26a0 (${vp.dominance === "BUY" ? "Al\u0131\u015f" : "Sat\u0131\u015f"} h\u00f6km\u00fcran)`;
+  }
+
+  const volumeConfirmation: SignalResult["volumeConfirmation"] = {
+    status: vcStatus,
+    label: vcLabel,
+    buyPct: Math.round(vp.buyRatio * 100),
+    sellPct: Math.round(vp.sellRatio * 100),
+    isHigh: vp.volumeIsHigh,
+    dominanceStrength: vp.dominanceStrength,
+  };
+
   const maxScore = Math.max(buyScore, sellScore);
   const strength = Math.min(98, (maxScore / MAX_SCORE) * 100);
   const direction: "BUY" | "SELL" = buyScore > sellScore ? "BUY" : "SELL";
@@ -523,14 +603,33 @@ export function generateSignal(
     .filter((v) => v.vote !== "NEUTRAL")
     .map((v) => v.reason);
 
-  // Signal fires when enough indicators agree (no longer requires both RSI + MACD simultaneously)
-  // Require: strength >= 75% AND strong majority (winning side has at least 1.5x the losing side — higher accuracy)
+  // THRESHOLD: 65% strength AND dominance >= 1.3
   const dominance =
     maxScore > 0 ? maxScore / Math.max(1, Math.min(buyScore, sellScore)) : 0;
 
-  if (strength >= 75 && dominance >= 1.5) {
-    return { direction, strength, reasons, votes, buyScore, sellScore };
+  // Volume contradiction: if contradicts and high strength, suppress signal to WAIT
+  const isVolumeContradicting =
+    vcStatus === "CONTRADICTS" && vp.dominanceStrength >= 40;
+
+  if (strength >= 65 && dominance >= 1.3 && !isVolumeContradicting) {
+    return {
+      direction,
+      strength,
+      reasons,
+      votes,
+      buyScore,
+      sellScore,
+      volumeConfirmation,
+    };
   }
 
-  return { direction: "WAIT", strength, reasons, votes, buyScore, sellScore };
+  return {
+    direction: "WAIT",
+    strength,
+    reasons,
+    votes,
+    buyScore,
+    sellScore,
+    volumeConfirmation,
+  };
 }

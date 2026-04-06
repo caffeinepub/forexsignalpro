@@ -1,5 +1,5 @@
 import type { AllIndicators } from "../utils/indicators";
-import type { VoteDetail } from "../utils/signals";
+import type { SignalResult, VoteDetail } from "../utils/signals";
 
 interface IndicatorCardProps {
   name: string;
@@ -68,14 +68,153 @@ function IndicatorCard({ name, value, vote, sub }: IndicatorCardProps) {
   );
 }
 
+interface VolumePressureBlockProps {
+  volumeConfirmation: SignalResult["volumeConfirmation"] | null;
+  buyPct: number;
+  sellPct: number;
+  isHigh: boolean;
+}
+
+function VolumePressureBlock({
+  volumeConfirmation,
+  buyPct,
+  sellPct,
+  isHigh,
+}: VolumePressureBlockProps) {
+  const status = volumeConfirmation?.status ?? "NEUTRAL";
+  const statusColor =
+    status === "CONFIRMS"
+      ? "#00ff88"
+      : status === "CONTRADICTS"
+        ? "#ff1744"
+        : status === "WEAK"
+          ? "#ffd700"
+          : "#8b92a8";
+  const statusBg =
+    status === "CONFIRMS"
+      ? "rgba(0,255,136,0.06)"
+      : status === "CONTRADICTS"
+        ? "rgba(255,23,68,0.06)"
+        : "rgba(255,255,255,0.02)";
+  const label = volumeConfirmation?.label ?? "Volume: neytral";
+
+  return (
+    <div
+      className="col-span-3 rounded-lg p-3 mt-1"
+      style={{
+        background: statusBg,
+        border: `1px solid ${statusColor}33`,
+      }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span
+          className="text-[9px] uppercase tracking-widest font-bold"
+          style={{ color: "#8b92a8" }}
+        >
+          Volume Baskı Analızı
+        </span>
+        {isHigh && (
+          <span
+            className="text-[8px] font-bold px-1.5 py-0.5 rounded"
+            style={{
+              color: "#ffd700",
+              backgroundColor: "rgba(255,215,0,0.15)",
+              border: "1px solid rgba(255,215,0,0.3)",
+            }}
+          >
+            YÜKSƎK VOLUME
+          </span>
+        )}
+      </div>
+
+      {/* Buy/Sell pressure bar */}
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className="text-[9px] w-8 text-right"
+          style={{ color: "#00ff88" }}
+        >
+          {buyPct}%
+        </span>
+        <div
+          className="flex-1 h-3 rounded-full overflow-hidden flex"
+          style={{ background: "rgba(255,255,255,0.06)" }}
+        >
+          <div
+            className="h-full transition-all duration-500"
+            style={{
+              width: `${buyPct}%`,
+              background: "linear-gradient(90deg, #00ff88, #00cc6a)",
+              borderRadius: buyPct < 100 ? "9999px 0 0 9999px" : "9999px",
+              boxShadow: buyPct >= 55 ? "0 0 6px rgba(0,255,136,0.5)" : "none",
+            }}
+          />
+          <div
+            className="h-full transition-all duration-500"
+            style={{
+              width: `${sellPct}%`,
+              background: "linear-gradient(90deg, #cc1133, #ff1744)",
+              borderRadius: sellPct < 100 ? "0 9999px 9999px 0" : "9999px",
+              boxShadow: sellPct >= 55 ? "0 0 6px rgba(255,23,68,0.5)" : "none",
+            }}
+          />
+        </div>
+        <span className="text-[9px] w-8" style={{ color: "#ff1744" }}>
+          {sellPct}%
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[9px]" style={{ color: "#8b92a8" }}>
+            Alış baskısı:
+          </span>
+          <span
+            className="text-[10px] font-bold"
+            style={{
+              color: "#00ff88",
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            {buyPct}%
+          </span>
+          <span className="text-[9px]" style={{ color: "#8b92a8" }}>
+            Satış baskısı:
+          </span>
+          <span
+            className="text-[10px] font-bold"
+            style={{
+              color: "#ff1744",
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            {sellPct}%
+          </span>
+        </div>
+        <span
+          className="text-[10px] font-bold px-2 py-0.5 rounded"
+          style={{
+            color: statusColor,
+            backgroundColor: `${statusColor}22`,
+            border: `1px solid ${statusColor}44`,
+          }}
+        >
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 interface IndicatorPanelProps {
   indicators: AllIndicators | null;
   votes: VoteDetail[];
+  signalResult: SignalResult | null;
 }
 
 export default function IndicatorPanel({
   indicators: ind,
   votes,
+  signalResult,
 }: IndicatorPanelProps) {
   const getVote = (name: string): "BUY" | "SELL" | "NEUTRAL" | null => {
     const found = votes.find((v) => v.indicator === name);
@@ -84,6 +223,10 @@ export default function IndicatorPanel({
 
   const fmt = (v: number | null | undefined, decimals = 5) =>
     v === null || v === undefined ? "--" : v.toFixed(decimals);
+
+  const vp = ind?.volumePressure;
+  const buyPct = vp ? Math.round(vp.buyRatio * 100) : 50;
+  const sellPct = vp ? Math.round(vp.sellRatio * 100) : 50;
 
   return (
     <div className="w-full" data-ocid="indicator_panel.panel">
@@ -221,6 +364,28 @@ export default function IndicatorPanel({
                   : "Weak"
               : undefined
           }
+        />
+        <IndicatorCard
+          name="Vol Pressure"
+          value={vp ? `${Math.round(vp.dominanceStrength)}%` : "--"}
+          vote={getVote("Vol Pressure")}
+          sub={
+            vp
+              ? vp.dominance === "BUY"
+                ? "Alış hökmüran"
+                : vp.dominance === "SELL"
+                  ? "Satış hökmüran"
+                  : "Neytral"
+              : undefined
+          }
+        />
+
+        {/* Volume Pressure detail block spanning full 3 columns */}
+        <VolumePressureBlock
+          volumeConfirmation={signalResult?.volumeConfirmation ?? null}
+          buyPct={buyPct}
+          sellPct={sellPct}
+          isHigh={vp?.volumeIsHigh ?? false}
         />
       </div>
     </div>
